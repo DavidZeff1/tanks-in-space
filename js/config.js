@@ -28,10 +28,21 @@ export const STAR_LAYERS = [
 ];
 
 export const LEVEL_DATA = [
-  { enemies: 3, drones: 0, spawn: { x: 400, y: 500 }, walls: [] },
+  {
+    enemies: 3,
+    drones: 0,
+    snipers: 0,
+    heavies: 0,
+    cloakDrones: 0,
+    spawn: { x: 400, y: 500 },
+    walls: [],
+  },
   {
     enemies: 4,
     drones: 0,
+    snipers: 0,
+    heavies: 0,
+    cloakDrones: 0,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 200, y: 155, w: 400, h: 28 },
@@ -41,6 +52,9 @@ export const LEVEL_DATA = [
   {
     enemies: 5,
     drones: 0,
+    snipers: 0,
+    heavies: 0,
+    cloakDrones: 0,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 150, y: 100, w: 28, h: 400 },
@@ -49,8 +63,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 6,
+    enemies: 5,
     drones: 0,
+    snipers: 1,
+    heavies: 0,
+    cloakDrones: 0,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 100, y: 100, w: 140, h: 28 },
@@ -63,6 +80,9 @@ export const LEVEL_DATA = [
   {
     enemies: 3,
     drones: 2,
+    snipers: 0,
+    heavies: 1,
+    cloakDrones: 0,
     spawn: { x: 100, y: 100 },
     walls: [
       { x: 0, y: 300, w: 300, h: 28 },
@@ -70,8 +90,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 4,
+    enemies: 3,
     drones: 3,
+    snipers: 1,
+    heavies: 0,
+    cloakDrones: 2,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 200, y: 200, w: 400, h: 28 },
@@ -79,8 +102,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 5,
-    drones: 4,
+    enemies: 4,
+    drones: 3,
+    snipers: 1,
+    heavies: 1,
+    cloakDrones: 2,
     spawn: { x: 400, y: 300 },
     walls: [
       { x: 200, y: 100, w: 28, h: 400 },
@@ -90,8 +116,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 6,
-    drones: 5,
+    enemies: 4,
+    drones: 4,
+    snipers: 2,
+    heavies: 1,
+    cloakDrones: 3,
     spawn: { x: 700, y: 500 },
     walls: [
       { x: 100, y: 100, w: 100, h: 100 },
@@ -103,6 +132,9 @@ export const LEVEL_DATA = [
   {
     enemies: 0,
     drones: 0,
+    snipers: 0,
+    heavies: 0,
+    cloakDrones: 0,
     isBoss: true,
     spawn: { x: 400, y: 500 },
     walls: [
@@ -112,8 +144,11 @@ export const LEVEL_DATA = [
   },
   // ── Act II: Levels 10–18 ──
   {
-    enemies: 5,
-    drones: 6,
+    enemies: 4,
+    drones: 4,
+    snipers: 2,
+    heavies: 1,
+    cloakDrones: 3,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 0, y: 220, w: 200, h: 28 },
@@ -122,8 +157,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 7,
-    drones: 4,
+    enemies: 5,
+    drones: 3,
+    snipers: 2,
+    heavies: 2,
+    cloakDrones: 2,
     spawn: { x: 100, y: 100 },
     walls: [
       { x: 200, y: 140, w: 28, h: 320 },
@@ -132,8 +170,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 6,
-    drones: 7,
+    enemies: 4,
+    drones: 5,
+    snipers: 2,
+    heavies: 1,
+    cloakDrones: 4,
     spawn: { x: 700, y: 300 },
     walls: [
       { x: 100, y: 100, w: 200, h: 28 },
@@ -144,8 +185,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 8,
-    drones: 5,
+    enemies: 5,
+    drones: 4,
+    snipers: 3,
+    heavies: 2,
+    cloakDrones: 3,
     spawn: { x: 400, y: 550 },
     walls: [
       { x: 150, y: 150, w: 28, h: 280 },
@@ -154,8 +198,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 7,
-    drones: 7,
+    enemies: 5,
+    drones: 5,
+    snipers: 2,
+    heavies: 2,
+    cloakDrones: 4,
     spawn: { x: 50, y: 300 },
     walls: [
       { x: 200, y: 100, w: 400, h: 28 },
@@ -165,8 +212,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 9,
-    drones: 5,
+    enemies: 6,
+    drones: 4,
+    snipers: 3,
+    heavies: 2,
+    cloakDrones: 3,
     spawn: { x: 400, y: 550 },
     walls: [
       { x: 100, y: 200, w: 120, h: 28 },
@@ -177,8 +227,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 8,
-    drones: 8,
+    enemies: 5,
+    drones: 6,
+    snipers: 3,
+    heavies: 2,
+    cloakDrones: 4,
     spawn: { x: 700, y: 100 },
     walls: [
       { x: 0, y: 150, w: 250, h: 28 },
@@ -189,8 +242,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 10,
-    drones: 6,
+    enemies: 6,
+    drones: 5,
+    snipers: 4,
+    heavies: 2,
+    cloakDrones: 4,
     spawn: { x: 400, y: 300 },
     walls: [
       { x: 100, y: 100, w: 28, h: 180 },
@@ -201,8 +257,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 9,
-    drones: 9,
+    enemies: 5,
+    drones: 6,
+    snipers: 4,
+    heavies: 3,
+    cloakDrones: 5,
     spawn: { x: 50, y: 50 },
     walls: [
       { x: 200, y: 100, w: 28, h: 200 },
@@ -213,8 +272,11 @@ export const LEVEL_DATA = [
     ],
   },
   {
-    enemies: 10,
-    drones: 10,
+    enemies: 6,
+    drones: 6,
+    snipers: 4,
+    heavies: 3,
+    cloakDrones: 5,
     spawn: { x: 400, y: 500 },
     walls: [
       { x: 150, y: 100, w: 180, h: 28 },
@@ -228,6 +290,9 @@ export const LEVEL_DATA = [
   {
     enemies: 0,
     drones: 0,
+    snipers: 0,
+    heavies: 0,
+    cloakDrones: 0,
     isBoss2: true,
     spawn: { x: 400, y: 520 },
     walls: [
@@ -254,6 +319,9 @@ export function makeProceduralLevel(idx) {
   return {
     enemies: 4 + wave * 2,
     drones: 2 + wave,
+    snipers: 1 + Math.floor(wave / 2),
+    heavies: Math.floor(wave / 2),
+    cloakDrones: 1 + Math.floor(wave * 0.7),
     spawn: { x: 400, y: 500 },
     walls: ws,
   };

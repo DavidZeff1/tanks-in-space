@@ -5,7 +5,15 @@
 import S from "./state.js";
 import { W, H, LEVEL_DATA, makeProceduralLevel } from "./config.js";
 import { dist, aabb } from "./utils.js";
-import { Tank, Drone, Boss, Boss2 } from "./entities.js";
+import {
+  Tank,
+  Drone,
+  Boss,
+  Boss2,
+  SniperTank,
+  HeavyTank,
+  CloakDrone,
+} from "./entities.js";
 import { hideAllUI, refreshBindingUI, saveLB } from "./ui.js";
 import { applyMusic } from "./audio.js";
 import { updateHP, updateHP2 } from "./hud.js";
@@ -171,9 +179,44 @@ export function loadLevel() {
       } while (!safe && attempts < 50);
       S.enemies.push(new Tank(ex, ey, "#c0392b", false));
     }
+    for (let i = 0; i < (data.snipers || 0); i++) {
+      let ex, ey, safe;
+      let attempts = 0;
+      do {
+        ex = 50 + Math.random() * 700;
+        ey = 30 + Math.random() * 150;
+        safe =
+          dist(ex, ey, S.player.x, S.player.y) > 250 &&
+          !S.walls.some((w) =>
+            aabb({ x: ex - 14, y: ey - 14, w: 28, h: 28 }, w),
+          );
+        attempts++;
+      } while (!safe && attempts < 50);
+      S.enemies.push(new SniperTank(ex, ey));
+    }
+    for (let i = 0; i < (data.heavies || 0); i++) {
+      let ex, ey, safe;
+      let attempts = 0;
+      do {
+        ex = 50 + Math.random() * 700;
+        ey = 40 + Math.random() * 200;
+        safe =
+          dist(ex, ey, S.player.x, S.player.y) > 200 &&
+          !S.walls.some((w) =>
+            aabb({ x: ex - 19, y: ey - 19, w: 38, h: 38 }, w),
+          );
+        attempts++;
+      } while (!safe && attempts < 50);
+      S.enemies.push(new HeavyTank(ex, ey));
+    }
     for (let i = 0; i < (data.drones || 0); i++) {
       S.drones.push(
         new Drone(100 + Math.random() * 600, -40 - Math.random() * 70),
+      );
+    }
+    for (let i = 0; i < (data.cloakDrones || 0); i++) {
+      S.drones.push(
+        new CloakDrone(100 + Math.random() * 600, -40 - Math.random() * 70),
       );
     }
   }

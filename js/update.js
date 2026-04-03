@@ -22,7 +22,7 @@ import {
 import { createParticles, createExplosion } from "./particles.js";
 import { updateHP, updateHP2, applyPowerUp, applyPowerUpP2 } from "./hud.js";
 import { saveLB } from "./ui.js";
-import { PowerUp } from "./entities.js";
+import { PowerUp, SniperTank, HeavyTank, CloakDrone } from "./entities.js";
 
 export function update() {
   // Story screen fade-in
@@ -134,8 +134,11 @@ export function update() {
     if (en.hp <= 0) {
       createExplosion(en.x, en.y, 40, 0);
       registerKill();
-      addScore(100);
-      if (Math.random() < 0.35)
+      const isSniper = en instanceof SniperTank;
+      const isHeavy = en instanceof HeavyTank;
+      addScore(isHeavy ? 200 : isSniper ? 150 : 100);
+      const dropChance = isHeavy ? 0.55 : 0.35;
+      if (Math.random() < dropChance)
         S.powerUps.push(
           new PowerUp(
             en.x,
@@ -156,12 +159,13 @@ export function update() {
     if (dr.dead) {
       createExplosion(dr.x, dr.y, 28, 0);
       registerKill();
-      addScore(50);
+      addScore(dr instanceof CloakDrone ? 75 : 50);
       S.drones.splice(i, 1);
       continue;
     }
     dr.update();
     const touchDist = dr.radius + S.player.size / 2;
+    const droneDmg = dr instanceof CloakDrone ? 30 : 22;
     if (
       S.player.hp > 0 &&
       dist(dr.x, dr.y, S.player.x, S.player.y) < touchDist
@@ -170,7 +174,7 @@ export function update() {
         dr.dead = true;
         createParticles(dr.x, dr.y, "#00d4ff", 10);
       } else {
-        S.player.hp -= 22;
+        S.player.hp -= droneDmg;
         dr.dead = true;
         updateHP();
         addShake(9);
@@ -188,7 +192,7 @@ export function update() {
         dr.dead = true;
         createParticles(dr.x, dr.y, "#f1c40f", 10);
       } else {
-        S.player2.hp -= 22;
+        S.player2.hp -= droneDmg;
         dr.dead = true;
         updateHP2();
         addShake(9);
@@ -255,16 +259,17 @@ export function update() {
         b.dead = true;
       }
     } else {
+      const bulletDmg = b.sniperDmg ? 20 : 10;
       if (S.player.hp > 0 && aabb(bRect, S.player.getRect())) {
         if (S.shieldActive) {
           createParticles(b.x, b.y, "#00d4ff", 8);
           b.dead = true;
         } else {
-          S.player.hp -= 10;
+          S.player.hp -= bulletDmg;
           createParticles(b.x, b.y, "#e74c3c", 5);
           b.dead = true;
           updateHP();
-          addShake(5);
+          addShake(b.sniperDmg ? 8 : 5);
         }
       }
       if (
@@ -278,11 +283,11 @@ export function update() {
           createParticles(b.x, b.y, "#f1c40f", 8);
           b.dead = true;
         } else {
-          S.player2.hp -= 10;
+          S.player2.hp -= bulletDmg;
           createParticles(b.x, b.y, "#e74c3c", 5);
           b.dead = true;
           updateHP2();
-          addShake(5);
+          addShake(b.sniperDmg ? 8 : 5);
         }
       }
     }

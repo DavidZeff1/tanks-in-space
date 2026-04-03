@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════
-// ENTITY CLASSES (Tank, Drone, Boss, Boss2, Bullet, PowerUp)
+// ENTITY CLASSES (Tank, Drone, Boss, Boss2, Bullet, PowerUp, SniperTank, HeavyTank, CloakDrone)
 // ═══════════════════════════════════════════════════
 
 import S from "./state.js";
 import { W, H } from "./config.js";
-import { aabb, nearestLivingPlayer } from "./utils.js";
+import { aabb, nearestLivingPlayer, dist } from "./utils.js";
 import {
   createParticles,
   spawnBounceParticle,
@@ -72,7 +72,32 @@ export class Tank {
       this.flankDir = -this.flankDir;
     }
 
-    if (d > 280) {
+    // Dodge incoming player bullets
+    let dodgeX = 0,
+      dodgeY = 0;
+    for (const b of S.bullets) {
+      if (!b.isPlayer) continue;
+      const bDist = Math.hypot(b.x - this.x, b.y - this.y);
+      if (bDist > 120) continue;
+      // Check if bullet is heading toward us
+      const toBullet = Math.atan2(this.y - b.y, this.x - b.x);
+      const bAngle = Math.atan2(b.vy, b.vx);
+      let diff = toBullet - bAngle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      if (Math.abs(diff) < 0.5) {
+        // Dodge perpendicular to bullet direction
+        const perpAngle = bAngle + (Math.PI / 2) * this.flankDir;
+        const urgency = (120 - bDist) / 120;
+        dodgeX += Math.cos(perpAngle) * this.speed * 1.5 * urgency;
+        dodgeY += Math.sin(perpAngle) * this.speed * 1.5 * urgency;
+        break;
+      }
+    }
+
+    if (dodgeX !== 0 || dodgeY !== 0) {
+      this.move(dodgeX, dodgeY);
+    } else if (d > 280) {
       const ma = this.angle + this.flankDir * 0.25;
       this.move(Math.cos(ma) * this.speed, Math.sin(ma) * this.speed);
     } else if (d > 120) {
@@ -86,6 +111,16 @@ export class Tank {
         -Math.cos(this.angle) * this.speed * 0.6,
         -Math.sin(this.angle) * this.speed * 0.6,
       );
+    }
+
+    // Spread out from nearby allies
+    for (const other of S.enemies) {
+      if (other === this) continue;
+      const aDist = Math.hypot(other.x - this.x, other.y - this.y);
+      if (aDist < 60 && aDist > 0) {
+        const awayAngle = Math.atan2(this.y - other.y, this.x - other.x);
+        this.move(Math.cos(awayAngle) * 0.5, Math.sin(awayAngle) * 0.5);
+      }
     }
 
     if (Math.random() < 0.016) this.shoot();
@@ -292,6 +327,386 @@ export class Drone {
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#5A2808";
     ctx.fillRect(10, -1.5, 5, 3);
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SNIPER TANK — Long range, high damage, stays far back
+// ═══════════════════════════════════════════════════
+export class SniperTank {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 28;
+    this.color = "#2c3e50";
+    this.isPlayer = false;
+    this.angle = 0;
+    this.speed = 1.0;
+    this.hp = 15;
+    this.maxHp = 15;
+    this.cooldown = 0;
+    this.flankTimer = 40 + Math.random() * 80;
+    this.flankDir = Math.random() < 0.5 ? 1 : -1;
+    this.getRect = () => ({
+      x: this.x - this.size / 2,
+      y: this.y - this.size / 2,
+      w: this.size,
+      h: this.size,
+    });
+  }
+
+  move(dx, dy) {
+    const r = this.getRect();
+    const nx = { ...r, x: r.x + dx };
+    if (!S.walls.some((w) => aabb(nx, w)) && nx.x >= 0 && nx.x + nx.w <= W)
+      this.x += dx;
+    const ny = { ...r, y: r.y + dy };
+    if (!S.walls.some((w) => aabb(ny, w)) && ny.y >= 0 && ny.y + ny.h <= H)
+      this.y += dy;
+  }
+
+  shoot() {
+    if (this.cooldown <= 0) {
+      const tx = this.x + Math.cos(this.angle) * (this.size + 10);
+      const ty = this.y + Math.sin(this.angle) * (this.size + 10);
+      const b = new Bullet(tx, ty, this.angle, false, false);
+      b.radius = 5;
+      b.sniperDmg = true; // marker for extra damage
+      S.bullets.push(b);
+      this.cooldown = 120;
+    }
+  }
+
+  updateAI() {
+    const tgt = nearestLivingPlayer(this.x, this.y);
+    if (!tgt) return;
+    const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
+    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+
+    this.flankTimer--;
+    if (this.flankTimer <= 0) {
+      this.flankTimer = 60 + Math.random() * 100;
+      this.flankDir = -this.flankDir;
+    }
+
+    // Snipers want to stay far — preferred 350-450 px
+    if (d < 250) {
+      // Retreat fast
+      this.move(
+        -Math.cos(this.angle) * this.speed * 1.4,
+        -Math.sin(this.angle) * this.speed * 1.4,
+      );
+    } else if (d < 350) {
+      // Strafe sideways
+      const sa = this.angle + (Math.PI / 2) * this.flankDir;
+      this.move(Math.cos(sa) * this.speed, Math.sin(sa) * this.speed);
+    } else if (d > 500) {
+      // Approach slowly
+      const ma = this.angle + this.flankDir * 0.15;
+      this.move(
+        Math.cos(ma) * this.speed * 0.7,
+        Math.sin(ma) * this.speed * 0.7,
+      );
+    } else {
+      // In sweet zone — barely move, just strafe lightly
+      const sa = this.angle + (Math.PI / 2) * this.flankDir;
+      this.move(
+        Math.cos(sa) * this.speed * 0.4,
+        Math.sin(sa) * this.speed * 0.4,
+      );
+    }
+
+    // Dodge incoming bullets
+    for (const b of S.bullets) {
+      if (!b.isPlayer) continue;
+      const bDist = Math.hypot(b.x - this.x, b.y - this.y);
+      if (bDist > 100) continue;
+      const toBullet = Math.atan2(this.y - b.y, this.x - b.x);
+      const bAngle = Math.atan2(b.vy, b.vx);
+      let diff = toBullet - bAngle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      if (Math.abs(diff) < 0.4) {
+        const perpAngle = bAngle + (Math.PI / 2) * this.flankDir;
+        this.move(
+          Math.cos(perpAngle) * this.speed * 2,
+          Math.sin(perpAngle) * this.speed * 2,
+        );
+        break;
+      }
+    }
+
+    if (this.cooldown <= 0 && d < 550) this.shoot();
+  }
+
+  draw() {
+    const ctx = S.ctx;
+    const s = this.size;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+
+    // Dark hull
+    ctx.fillStyle = "#1a252f";
+    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.fillStyle = "#2c3e50";
+    ctx.fillRect(-s / 2 + 3, -s / 2 + 3, s - 6, s - 6);
+
+    // Turret
+    ctx.fillStyle = "#1a252f";
+    ctx.beginPath();
+    ctx.arc(0, 0, s / 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#34495e";
+    ctx.beginPath();
+    ctx.arc(0, 0, s / 3 - 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Long barrel (sniper indicator)
+    ctx.fillStyle = "#1a252f";
+    ctx.fillRect(0, -3, s / 2 + 22, 6);
+    ctx.fillStyle = "#2c3e50";
+    ctx.fillRect(2, -2, s / 2 + 18, 4);
+
+    // Scope glow
+    ctx.shadowColor = "#3498db";
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = "#3498db";
+    ctx.beginPath();
+    ctx.arc(s / 2 + 20, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+    // HP bar
+    const hpPct = Math.max(0, this.hp / this.maxHp);
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(this.x - 16, this.y - 24, 32, 5);
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(this.x - 16, this.y - 24, 32 * hpPct, 5);
+
+    // Sniper label
+    ctx.fillStyle = "rgba(52,152,219,0.6)";
+    ctx.font = "bold 8px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("🎯", this.x, this.y - 28);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// HEAVY TANK — Big, tough, fires spreads
+// ═══════════════════════════════════════════════════
+export class HeavyTank {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 38;
+    this.color = "#6b2d10";
+    this.isPlayer = false;
+    this.angle = 0;
+    this.speed = 0.8;
+    this.hp = 50;
+    this.maxHp = 50;
+    this.cooldown = 0;
+    this.flankTimer = 50 + Math.random() * 70;
+    this.flankDir = Math.random() < 0.5 ? 1 : -1;
+    this.getRect = () => ({
+      x: this.x - this.size / 2,
+      y: this.y - this.size / 2,
+      w: this.size,
+      h: this.size,
+    });
+  }
+
+  move(dx, dy) {
+    const r = this.getRect();
+    const nx = { ...r, x: r.x + dx };
+    if (!S.walls.some((w) => aabb(nx, w)) && nx.x >= 0 && nx.x + nx.w <= W)
+      this.x += dx;
+    const ny = { ...r, y: r.y + dy };
+    if (!S.walls.some((w) => aabb(ny, w)) && ny.y >= 0 && ny.y + ny.h <= H)
+      this.y += dy;
+  }
+
+  shoot() {
+    if (this.cooldown <= 0) {
+      // 3-bullet spread
+      for (let i = -1; i <= 1; i++) {
+        const a = this.angle + i * 0.15;
+        const tx = this.x + Math.cos(a) * this.size;
+        const ty = this.y + Math.sin(a) * this.size;
+        const b = new Bullet(tx, ty, a, false, false);
+        b.radius = 5;
+        S.bullets.push(b);
+      }
+      this.cooldown = 90;
+    }
+  }
+
+  updateAI() {
+    const tgt = nearestLivingPlayer(this.x, this.y);
+    if (!tgt) return;
+    const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
+    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+
+    this.flankTimer--;
+    if (this.flankTimer <= 0) {
+      this.flankTimer = 50 + Math.random() * 70;
+      this.flankDir = -this.flankDir;
+    }
+
+    // Heavy tanks push forward aggressively
+    if (d > 200) {
+      const ma = this.angle + this.flankDir * 0.15;
+      this.move(Math.cos(ma) * this.speed, Math.sin(ma) * this.speed);
+    } else if (d > 100) {
+      // Strafe
+      const sa = this.angle + (Math.PI / 2) * this.flankDir;
+      this.move(
+        Math.cos(sa) * this.speed * 0.7,
+        Math.sin(sa) * this.speed * 0.7,
+      );
+    }
+    // Heavy tanks don't retreat — they hold ground
+
+    if (Math.random() < 0.013) this.shoot();
+  }
+
+  draw() {
+    const ctx = S.ctx;
+    const s = this.size;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+
+    // Tracks (wider)
+    ctx.fillStyle = "#16120C";
+    ctx.fillRect(-s / 2 - 6, -s / 2, 10, s);
+    ctx.fillRect(s / 2 - 4, -s / 2, 10, s);
+
+    // Heavy hull
+    ctx.fillStyle = "#3a1a08";
+    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.fillStyle = "#6b2d10";
+    ctx.fillRect(-s / 2 + 4, -s / 2 + 4, s - 8, s - 8);
+    ctx.fillStyle = "#8b3d15";
+    ctx.fillRect(-s / 2 + 6, -s / 2 + 6, s - 12, 5);
+
+    // Armor plates
+    ctx.strokeStyle = "#4a1e06";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-s / 2 + 2, -s / 2 + 2, s - 4, s - 4);
+
+    // Turret
+    ctx.fillStyle = "#3a1a08";
+    ctx.beginPath();
+    ctx.arc(0, 0, s / 2.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#5a2a10";
+    ctx.beginPath();
+    ctx.arc(0, 0, s / 2.8 - 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wide barrel
+    ctx.fillStyle = "#3a1a08";
+    ctx.fillRect(0, -5, s / 2 + 16, 10);
+    ctx.fillStyle = "#4a2010";
+    ctx.fillRect(2, -4, s / 2 + 12, 8);
+
+    // Muzzle glow
+    ctx.shadowColor = "#e67e22";
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = "#e67e22";
+    ctx.beginPath();
+    ctx.arc(s / 2 + 14, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+    // HP bar (wider for heavy tank)
+    const hpPct = Math.max(0, this.hp / this.maxHp);
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(this.x - 20, this.y - 32, 40, 6);
+    ctx.fillStyle =
+      hpPct > 0.5 ? "#e67e22" : hpPct > 0.25 ? "#e74c3c" : "#ff2200";
+    ctx.fillRect(this.x - 20, this.y - 32, 40 * hpPct, 6);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// CLOAK DRONE — Phases in and out of visibility
+// ═══════════════════════════════════════════════════
+export class CloakDrone {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 12;
+    this.speed = 3.5;
+    this.angle = 0;
+    this.dead = false;
+    this.cloakPhase = Math.random() * Math.PI * 2;
+    this.getRect = () => ({
+      x: this.x - this.radius,
+      y: this.y - this.radius,
+      w: this.radius * 2,
+      h: this.radius * 2,
+    });
+  }
+
+  update() {
+    this.cloakPhase += 0.04;
+    const tgt = nearestLivingPlayer(this.x, this.y);
+    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+  }
+
+  getAlpha() {
+    // Oscillates between 0.08 (nearly invisible) and 0.7 (semi-visible)
+    return 0.08 + (Math.sin(this.cloakPhase) * 0.5 + 0.5) * 0.62;
+  }
+
+  draw() {
+    const ctx = S.ctx;
+    const alpha = this.getAlpha();
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+
+    // Similar to drone but with purple/stealth color
+    ctx.shadowColor = "#9b59b6";
+    ctx.shadowBlur = 10 * alpha;
+    ctx.fillStyle = "#1a081a";
+    ctx.beginPath();
+    ctx.moveTo(15, 0);
+    ctx.lineTo(3, 10);
+    ctx.lineTo(-12, 8);
+    ctx.lineTo(-12, -8);
+    ctx.lineTo(3, -10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#4a1a4a";
+    ctx.beginPath();
+    ctx.moveTo(12, 0);
+    ctx.lineTo(1, 8);
+    ctx.lineTo(-9, 6);
+    ctx.lineTo(-9, -6);
+    ctx.lineTo(1, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowColor = "#9b59b6";
+    ctx.shadowBlur = 12 * alpha;
+    ctx.fillStyle = "#9b59b6";
+    ctx.beginPath();
+    ctx.arc(-8, 0, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
     ctx.restore();
   }
 }
