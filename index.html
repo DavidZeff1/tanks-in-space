@@ -192,6 +192,9 @@
           <button class="secondary" onclick="openLeaderboard('start-screen')">
             🏆 טבלת שיאים
           </button>
+          <button class="secondary" onclick="openCredits('start-screen')">
+            🎬 יוצרים
+          </button>
         </div>
 
         <!-- Key Bindings -->
@@ -289,6 +292,27 @@
           >
             חזור
           </button>
+        </div>
+
+        <!-- Credits -->
+        <div id="credits-panel" class="overlay" style="display: none">
+          <h1 style="font-size: 20px">🎬 יוצרים</h1>
+          <div
+            style="
+              font-size: 16px;
+              line-height: 2.2;
+              margin: 16px 0;
+              color: #e0e0e0;
+            "
+          >
+            מונשי בירן<br />
+            אורי בירן<br />
+            איתאל<br />
+            דייב<br />
+            יגל<br />
+            חילי
+          </div>
+          <button class="secondary" onclick="closeCredits()">חזור</button>
         </div>
 
         <!-- Leaderboard -->

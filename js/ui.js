@@ -205,6 +205,21 @@ export function closeLeaderboard() {
 }
 
 // ═══════════════════════════════════════════════════
+// CREDITS
+// ═══════════════════════════════════════════════════
+
+export function openCredits(returnScreen) {
+  S.creditsReturnScreen = returnScreen;
+  document.getElementById(returnScreen).style.display = "none";
+  document.getElementById("credits-panel").style.display = "block";
+}
+
+export function closeCredits() {
+  document.getElementById("credits-panel").style.display = "none";
+  document.getElementById(S.creditsReturnScreen).style.display = "block";
+}
+
+// ═══════════════════════════════════════════════════
 // SETTINGS
 // ═══════════════════════════════════════════════════
 
@@ -268,3 +283,5 @@ window.startBind = startBind;
 window.resetBindings = resetBindings;
 window.openLeaderboard = openLeaderboard;
 window.closeLeaderboard = closeLeaderboard;
+window.openCredits = openCredits;
+window.closeCredits = closeCredits;
