@@ -447,51 +447,116 @@ export class SniperTank {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
 
-    // Dark hull
-    ctx.fillStyle = "#1a252f";
-    ctx.fillRect(-s / 2, -s / 2, s, s);
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(-s / 2 + 3, -s / 2 + 3, s - 6, s - 6);
+    // Sleek narrow tracks
+    ctx.fillStyle = "#0d1520";
+    ctx.fillRect(-s / 2 - 3, -s / 2 + 2, 5, s - 4);
+    ctx.fillRect(s / 2 - 2, -s / 2 + 2, 5, s - 4);
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = i % 2 === 0 ? "#1a2a3a" : "#0d1520";
+      const segH = (s - 8) / 4;
+      ctx.fillRect(-s / 2 - 2, -s / 2 + 4 + i * segH, 3, segH - 1);
+      ctx.fillRect(s / 2 - 1, -s / 2 + 4 + i * segH, 3, segH - 1);
+    }
 
-    // Turret
-    ctx.fillStyle = "#1a252f";
+    // Narrow angular hull (diamond/chevron shape)
+    ctx.fillStyle = "#0f1a28";
     ctx.beginPath();
-    ctx.arc(0, 0, s / 3, 0, Math.PI * 2);
+    ctx.moveTo(s / 2 - 2, 0);
+    ctx.lineTo(2, -s / 2 + 2);
+    ctx.lineTo(-s / 2 + 4, -s / 3);
+    ctx.lineTo(-s / 2 + 4, s / 3);
+    ctx.lineTo(2, s / 2 - 2);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#34495e";
+    ctx.fillStyle = "#1a2d42";
     ctx.beginPath();
-    ctx.arc(0, 0, s / 3 - 2, 0, Math.PI * 2);
+    ctx.moveTo(s / 2 - 5, 0);
+    ctx.lineTo(0, -s / 2 + 5);
+    ctx.lineTo(-s / 2 + 7, -s / 4);
+    ctx.lineTo(-s / 2 + 7, s / 4);
+    ctx.lineTo(0, s / 2 - 5);
+    ctx.closePath();
     ctx.fill();
 
-    // Long barrel (sniper indicator)
-    ctx.fillStyle = "#1a252f";
-    ctx.fillRect(0, -3, s / 2 + 22, 6);
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(2, -2, s / 2 + 18, 4);
+    // Tech lines on hull
+    ctx.strokeStyle = "rgba(52,152,219,0.3)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-s / 2 + 8, 0);
+    ctx.lineTo(s / 3, 0);
+    ctx.stroke();
 
-    // Scope glow
+    // Turret — small, tight
+    ctx.fillStyle = "#0f1a28";
+    ctx.beginPath();
+    ctx.arc(-2, 0, s / 4 + 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1e3450";
+    ctx.beginPath();
+    ctx.arc(-2, 0, s / 4 - 1, 0, Math.PI * 2);
+    ctx.fill();
+    // Inner scope ring
+    ctx.strokeStyle = "#3498db";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(-2, 0, 3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Very long thin barrel
+    ctx.fillStyle = "#0f1a28";
+    ctx.fillRect(s / 4, -2.5, s / 2 + 18, 5);
+    ctx.fillStyle = "#1a2d42";
+    ctx.fillRect(s / 4 + 1, -1.5, s / 2 + 15, 3);
+    // Barrel rings
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(s / 3 + 6, -2.5, 1.5, 5);
+    ctx.fillRect(s / 2 + 8, -2.5, 1.5, 5);
+
+    // Scope glow at tip
     ctx.shadowColor = "#3498db";
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 12;
     ctx.fillStyle = "#3498db";
     ctx.beginPath();
-    ctx.arc(s / 2 + 20, 0, 2.5, 0, Math.PI * 2);
+    ctx.arc(s / 2 + 24, 0, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
+    // Side antenna
+    ctx.strokeStyle = "#3498db";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-s / 3, -s / 3);
+    ctx.lineTo(-s / 3 - 4, -s / 2 - 3);
+    ctx.stroke();
+    ctx.fillStyle = "#3498db";
+    ctx.beginPath();
+    ctx.arc(-s / 3 - 4, -s / 2 - 3, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
 
-    // HP bar
+    // HP bar — blue themed
     const hpPct = Math.max(0, this.hp / this.maxHp);
     ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(this.x - 16, this.y - 24, 32, 5);
+    ctx.fillRect(this.x - 16, this.y - 26, 32, 4);
     ctx.fillStyle = "#3498db";
-    ctx.fillRect(this.x - 16, this.y - 24, 32 * hpPct, 5);
+    ctx.fillRect(this.x - 16, this.y - 26, 32 * hpPct, 4);
 
-    // Sniper label
-    ctx.fillStyle = "rgba(52,152,219,0.6)";
-    ctx.font = "bold 8px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("🎯", this.x, this.y - 28);
+    // Crosshair indicator above
+    ctx.strokeStyle = "rgba(52,152,219,0.5)";
+    ctx.lineWidth = 1;
+    const cy = this.y - 33;
+    ctx.beginPath();
+    ctx.moveTo(this.x - 5, cy);
+    ctx.lineTo(this.x + 5, cy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(this.x, cy - 5);
+    ctx.lineTo(this.x, cy + 5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(this.x, cy, 3.5, 0, Math.PI * 2);
+    ctx.stroke();
   }
 }
 
@@ -581,58 +646,124 @@ export class HeavyTank {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
 
-    // Tracks (wider)
-    ctx.fillStyle = "#16120C";
-    ctx.fillRect(-s / 2 - 6, -s / 2, 10, s);
-    ctx.fillRect(s / 2 - 4, -s / 2, 10, s);
+    // Double-wide tracks with rivets
+    ctx.fillStyle = "#0e0a06";
+    ctx.fillRect(-s / 2 - 8, -s / 2 - 2, 12, s + 4);
+    ctx.fillRect(s / 2 - 4, -s / 2 - 2, 12, s + 4);
+    for (let i = 0; i < 6; i++) {
+      const segH = (s + 2) / 6;
+      ctx.fillStyle = i % 2 === 0 ? "#2a1608" : "#0e0a06";
+      ctx.fillRect(-s / 2 - 7, -s / 2 + i * segH, 10, segH - 1);
+      ctx.fillRect(s / 2 - 3, -s / 2 + i * segH, 10, segH - 1);
+    }
+    // Track wheels
+    ctx.fillStyle = "#1a0e04";
+    for (const yOff of [-s / 2 + 4, 0, s / 2 - 4]) {
+      ctx.beginPath();
+      ctx.arc(-s / 2 - 2, yOff, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(s / 2 + 2, yOff, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    // Heavy hull
+    // Massive hull — layered armor plates
+    ctx.fillStyle = "#1c0c02";
+    ctx.fillRect(-s / 2 - 1, -s / 2, s + 2, s);
     ctx.fillStyle = "#3a1a08";
-    ctx.fillRect(-s / 2, -s / 2, s, s);
-    ctx.fillStyle = "#6b2d10";
-    ctx.fillRect(-s / 2 + 4, -s / 2 + 4, s - 8, s - 8);
-    ctx.fillStyle = "#8b3d15";
-    ctx.fillRect(-s / 2 + 6, -s / 2 + 6, s - 12, 5);
+    ctx.fillRect(-s / 2 + 2, -s / 2 + 2, s - 4, s - 4);
+    ctx.fillStyle = "#5a2a10";
+    ctx.fillRect(-s / 2 + 5, -s / 2 + 5, s - 10, s - 10);
 
-    // Armor plates
-    ctx.strokeStyle = "#4a1e06";
+    // Front armor plate (extra thick)
+    ctx.fillStyle = "#6b3410";
+    ctx.fillRect(s / 4, -s / 2 + 3, s / 4, s - 6);
+
+    // Armor rivets / bolts
+    ctx.fillStyle = "#8a5020";
+    const boltPositions = [
+      [-s / 2 + 6, -s / 2 + 6],
+      [s / 2 - 6, -s / 2 + 6],
+      [-s / 2 + 6, s / 2 - 6],
+      [s / 2 - 6, s / 2 - 6],
+      [0, -s / 2 + 6],
+      [0, s / 2 - 6],
+    ];
+    for (const [bx, by] of boltPositions) {
+      ctx.beginPath();
+      ctx.arc(bx, by, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Reinforcement cross-bars
+    ctx.strokeStyle = "#4a2008";
     ctx.lineWidth = 2;
-    ctx.strokeRect(-s / 2 + 2, -s / 2 + 2, s - 4, s - 4);
+    ctx.beginPath();
+    ctx.moveTo(-s / 2 + 5, 0);
+    ctx.lineTo(s / 4 - 2, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -s / 2 + 5);
+    ctx.lineTo(0, s / 2 - 5);
+    ctx.stroke();
 
-    // Turret
+    // Big turret
+    ctx.fillStyle = "#1c0c02";
+    ctx.beginPath();
+    ctx.arc(-2, 0, s / 2.4 + 1, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = "#3a1a08";
     ctx.beginPath();
-    ctx.arc(0, 0, s / 2.8, 0, Math.PI * 2);
+    ctx.arc(-2, 0, s / 2.4 - 1, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#5a2a10";
     ctx.beginPath();
-    ctx.arc(0, 0, s / 2.8 - 2, 0, Math.PI * 2);
+    ctx.arc(-2, 0, s / 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Wide barrel
+    // Dual barrels (heavy indicator)
+    ctx.fillStyle = "#1c0c02";
+    ctx.fillRect(s / 4, -7, s / 2 + 14, 5);
+    ctx.fillRect(s / 4, 2, s / 2 + 14, 5);
     ctx.fillStyle = "#3a1a08";
-    ctx.fillRect(0, -5, s / 2 + 16, 10);
-    ctx.fillStyle = "#4a2010";
-    ctx.fillRect(2, -4, s / 2 + 12, 8);
+    ctx.fillRect(s / 4 + 1, -6, s / 2 + 11, 3);
+    ctx.fillRect(s / 4 + 1, 3, s / 2 + 11, 3);
 
-    // Muzzle glow
+    // Muzzle glow on both barrels
     ctx.shadowColor = "#e67e22";
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = 10;
     ctx.fillStyle = "#e67e22";
     ctx.beginPath();
-    ctx.arc(s / 2 + 14, 0, 3, 0, Math.PI * 2);
+    ctx.arc(s / 2 + 13, -4.5, 2.5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.beginPath();
+    ctx.arc(s / 2 + 13, 4.5, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Warning glow around hull
+    ctx.shadowColor = "#e67e22";
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = "rgba(230,126,34,0.25)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-s / 2, -s / 2, s, s);
     ctx.shadowBlur = 0;
 
     ctx.restore();
 
-    // HP bar (wider for heavy tank)
+    // HP bar — wide, orange themed
     const hpPct = Math.max(0, this.hp / this.maxHp);
     ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(this.x - 20, this.y - 32, 40, 6);
+    ctx.fillRect(this.x - 22, this.y - 34, 44, 6);
     ctx.fillStyle =
       hpPct > 0.5 ? "#e67e22" : hpPct > 0.25 ? "#e74c3c" : "#ff2200";
-    ctx.fillRect(this.x - 20, this.y - 32, 40 * hpPct, 6);
+    ctx.fillRect(this.x - 22, this.y - 34, 44 * hpPct, 6);
+
+    // Skull/warning icon
+    ctx.fillStyle = "rgba(230,126,34,0.5)";
+    ctx.font = "bold 9px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("⚠", this.x, this.y - 38);
   }
 }
 
