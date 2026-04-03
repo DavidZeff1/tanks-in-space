@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>טנקים בחלל העמוק — מלחמת הכט"במים הראשונה</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="game-container">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <canvas id="vigCanvas" width="800" height="600"></canvas>
+
+      <!-- HUD -->
+      <div id="hud">
+        <div class="hud-box">
+          <div>שלב <span id="level-display">1</span></div>
+          <div style="margin-top: 3px; color: #e74c3c">
+            אויבים: <span id="enemies-display">0</span>
+          </div>
+        </div>
+        <div id="score-wrap">
+          <div id="score-num">0</div>
+          <div id="combo-display"></div>
+        </div>
+        <div class="hud-box" style="text-align: center">
+          <div style="font-size: 11px; color: #7aaac8">שריון</div>
+          <div class="hp-bar-container"><div id="hp-bar"></div></div>
+        </div>
+      </div>
+
+      <!-- Abilities -->
+      <div id="abilities">
+        <div class="ability">
+          <div class="key" id="key-ab1">1</div>
+          🚀
+          <div class="cooldown-overlay" id="cd1"></div>
+        </div>
+        <div class="ability">
+          <div class="key" id="key-ab2">2</div>
+          🔥
+          <div class="cooldown-overlay" id="cd2"></div>
+        </div>
+        <div class="ability">
+          <div class="key" id="key-ab3">3</div>
+          🛡
+          <div class="cooldown-overlay" id="cd3"></div>
+        </div>
+      </div>
+
+      <!-- Boss bar -->
+      <div id="boss-ui">
+        <div id="boss-name">⚠ COMMANDER OVERLORD ⚠</div>
+        <div class="boss-hp-container"><div id="boss-hp-bar"></div></div>
+      </div>
+
+      <!-- Player 2 HUD -->
+      <div id="p2-hud-box" class="hud-box" style="display: none">
+        <div style="font-size: 11px; color: #4a9fff">P2 שריון</div>
+        <div class="p2-hp-bar-container"><div id="hp-bar2"></div></div>
+      </div>
+      <div id="p2-abilities" style="display: none">
+        <div class="ability">
+          <div class="key" id="key-p2ab1">.</div>
+          🚀
+          <div class="cooldown-overlay" id="p2cd1"></div>
+        </div>
+        <div class="ability">
+          <div class="key" id="key-p2ab2">,</div>
+          🔥
+          <div class="cooldown-overlay" id="p2cd2"></div>
+        </div>
+        <div class="ability">
+          <div class="key" id="key-p2ab3">/</div>
+          🛡
+          <div class="cooldown-overlay" id="p2cd3"></div>
+        </div>
+      </div>
+
+      <!-- UI Layer -->
+      <div id="ui-layer">
+        <!-- Start -->
+        <div id="start-screen" class="overlay" style="display: none">
+          <div
+            style="
+              font-size: 10px;
+              letter-spacing: 3px;
+              color: rgba(255, 140, 30, 0.7);
+              text-transform: uppercase;
+              margin-bottom: 6px;
+              font-weight: 600;
+            "
+          >
+            ▸ TACTICAL COMMAND ◂
+          </div>
+          <h1>טנקים בחלל העמוק</h1>
+          <div
+            style="
+              font-size: 11px;
+              letter-spacing: 2px;
+              color: rgba(255, 180, 60, 0.8);
+              margin: -8px 0 12px;
+              font-style: italic;
+            "
+          >
+            מלחמת הכט"במים הראשונה
+          </div>
+          <p>
+            <b>P1 תנועה:</b> <span id="lbl-up">W</span>/<span id="lbl-down"
+              >S</span
+            >/<span id="lbl-left">A</span>/<span id="lbl-right">D</span>
+            &nbsp;|&nbsp; <b>ירי:</b> קליק<br />
+            <b>טיל</b> <span id="lbl-ab1">1</span> &nbsp;·&nbsp; <b>הדף</b>
+            <span id="lbl-ab2">2</span> &nbsp;·&nbsp; <b>שילד</b>
+            <span id="lbl-ab3">3</span> &nbsp;·&nbsp; <b>הפסקה</b> ESC<br />
+            <span id="p2-controls-hint" style="display: none; color: #4a9fff">
+              <b>P2 תנועה:</b> חצים &nbsp;|&nbsp; <b>ירי:</b> Shift ימני (כיוון
+              אוטומטי)<br />
+              <b>טיל</b> . &nbsp;·&nbsp; <b>הדף</b> , &nbsp;·&nbsp;
+              <b>שילד</b> /
+            </span>
+          </p>
+          <input
+            type="text"
+            id="name-input"
+            placeholder="שם הטנק שלך..."
+            maxlength="15"
+            autocomplete="off"
+          />
+          <div class="settings-divider"></div>
+          <div class="settings-row">
+            <span>🎵 מוזיקה:</span>
+            <label
+              ><input
+                type="radio"
+                name="music-pref"
+                id="music-rhythmic"
+                value="rhythmic"
+              />
+              קצבית</label
+            >
+            <label
+              ><input
+                type="radio"
+                name="music-pref"
+                id="music-calm"
+                value="calm"
+              />
+              רגועה</label
+            >
+            <label
+              ><input
+                type="radio"
+                name="music-pref"
+                id="music-mute"
+                value="mute"
+              />
+              השתקה</label
+            >
+          </div>
+          <div class="settings-row">
+            <label
+              ><input type="checkbox" id="ricochet-check" /> 🔵 ריקושטים (כדורים
+              קופצים)</label
+            >
+          </div>
+          <div class="settings-divider"></div>
+          <div class="settings-row">
+            <label
+              ><input type="checkbox" id="two-player-check" /> 👥 שני
+              שחקנים</label
+            >
+          </div>
+          <div
+            id="p2-name-row"
+            style="display: none; margin-top: 8px; text-align: center"
+          >
+            <input
+              type="text"
+              id="name-input2"
+              placeholder="שם טנק שחקן 2..."
+              maxlength="15"
+              autocomplete="off"
+              style="width: 80%"
+            />
+          </div>
+          <div class="settings-divider"></div>
+          <button onclick="startGame()">צא לקרב!</button>
+          <button class="secondary" onclick="openBindings('start-screen')">
+            ⚙ שנה מקשים
+          </button>
+          <button class="secondary" onclick="openLeaderboard('start-screen')">
+            🏆 טבלת שיאים
+          </button>
+        </div>
+
+        <!-- Key Bindings -->
+        <div id="bindings-panel" class="overlay" style="display: none">
+          <h1 style="font-size: 20px">⚙ הגדרת מקשים</h1>
+          <table id="bindings-table">
+            <tr>
+              <td>למעלה</td>
+              <td>
+                <button class="bind-btn" id="btn-up" onclick="startBind('up')">
+                  W
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>למטה</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-down"
+                  onclick="startBind('down')"
+                >
+                  S
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>שמאלה</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-left"
+                  onclick="startBind('left')"
+                >
+                  A
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>ימינה</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-right"
+                  onclick="startBind('right')"
+                >
+                  D
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>טיל 🚀</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-ability1"
+                  onclick="startBind('ability1')"
+                >
+                  1
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>הדף 🔥</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-ability2"
+                  onclick="startBind('ability2')"
+                >
+                  2
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>שילד 🛡</td>
+              <td>
+                <button
+                  class="bind-btn"
+                  id="btn-ability3"
+                  onclick="startBind('ability3')"
+                >
+                  3
+                </button>
+              </td>
+            </tr>
+          </table>
+          <button class="secondary" onclick="resetBindings()">
+            איפוס לברירת מחדל
+          </button>
+          <button
+            class="secondary"
+            id="bindings-back-btn"
+            onclick="closeBindings()"
+          >
+            חזור
+          </button>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="lb-panel" class="overlay" style="display: none">
+          <h1 style="font-size: 20px">🏆 טבלת שיאים</h1>
+          <ul id="lb-list"></ul>
+          <button
+            class="secondary"
+            id="lb-back-btn"
+            onclick="closeLeaderboard()"
+          >
+            חזור
+          </button>
+        </div>
+
+        <!-- Level complete -->
+        <div id="level-screen" class="overlay" style="display: none">
+          <h1 id="level-title">שלב הושלם!</h1>
+          <p id="level-score-info"></p>
+          <button onclick="nextLevel()">המשך ←</button>
+        </div>
+
+        <!-- Game over -->
+        <div id="gameover-screen" class="overlay" style="display: none">
+          <h1
+            style="color: #e74c3c; text-shadow: 0 0 20px rgba(231, 76, 60, 0.7)"
+          >
+            הטנק הושמד
+          </h1>
+          <p id="go-score"></p>
+          <button onclick="resetGame()">נסה שוב</button>
+          <button
+            class="secondary"
+            onclick="openLeaderboard('gameover-screen')"
+          >
+            🏆 שיאים
+          </button>
+        </div>
+
+        <!-- Win -->
+        <div id="win-screen" class="overlay" style="display: none">
+          <h1>ניצחון מזהיר! 🌟</h1>
+          <p id="win-score"></p>
+          <button onclick="startInfinite()">המשך לגלים אינסופיים</button>
+          <button class="secondary" onclick="resetGame()">תפריט ראשי</button>
+          <button class="secondary" onclick="openLeaderboard('win-screen')">
+            🏆 שיאים
+          </button>
+        </div>
+
+        <!-- Pause -->
+        <div id="pause-screen" class="overlay" style="display: none">
+          <h1 style="font-size: 22px">⏸ הפסקה</h1>
+          <button onclick="resumeGame()">המשך משחק</button>
+          <button class="secondary" onclick="openBindings('pause-screen')">
+            ⚙ שנה מקשים
+          </button>
+          <button class="danger" onclick="resetGame()">חזור לתפריט</button>
+        </div>
+      </div>
+      <!-- /ui-layer -->
+    </div>
+    <!-- /game-container -->
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
