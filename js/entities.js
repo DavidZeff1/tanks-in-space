@@ -31,6 +31,8 @@ export class Tank {
     this.cooldown = 0;
     this.flankTimer = 30 + Math.random() * 60;
     this.flankDir = Math.random() < 0.5 ? 1 : -1;
+    this.jukeTimer = 0;
+    this.jukeAngle = 0;
     this.getRect = () => ({
       x: this.x - this.size / 2,
       y: this.y - this.size / 2,
@@ -64,12 +66,41 @@ export class Tank {
     const tgt = nearestLivingPlayer(this.x, this.y);
     if (!tgt) return;
     const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
-    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+
+    // Predictive aiming — lead the target based on movement
+    const bulletSpd = 8;
+    const travelTime = d / bulletSpd;
+    let predX = tgt.x,
+      predY = tgt.y;
+    if (tgt._prevX !== undefined) {
+      const tvx = tgt.x - tgt._prevX;
+      const tvy = tgt.y - tgt._prevY;
+      predX += tvx * travelTime * 0.5;
+      predY += tvy * travelTime * 0.5;
+    }
+    tgt._prevX = tgt.x;
+    tgt._prevY = tgt.y;
+    this.angle = Math.atan2(predY - this.y, predX - this.x);
 
     this.flankTimer--;
     if (this.flankTimer <= 0) {
       this.flankTimer = 60 + Math.random() * 90;
       this.flankDir = -this.flankDir;
+    }
+
+    // Random juke — sudden direction change to dodge
+    if (this.jukeTimer > 0) {
+      this.jukeTimer--;
+      this.move(
+        Math.cos(this.jukeAngle) * this.speed * 1.8,
+        Math.sin(this.jukeAngle) * this.speed * 1.8,
+      );
+    } else {
+      // Small chance to juke each frame
+      if (Math.random() < 0.008) {
+        this.jukeTimer = 8 + Math.floor(Math.random() * 12);
+        this.jukeAngle = Math.random() * Math.PI * 2;
+      }
     }
 
     // Dodge incoming player bullets
@@ -78,52 +109,94 @@ export class Tank {
     for (const b of S.bullets) {
       if (!b.isPlayer) continue;
       const bDist = Math.hypot(b.x - this.x, b.y - this.y);
-      if (bDist > 120) continue;
-      // Check if bullet is heading toward us
+      if (bDist > 140) continue;
       const toBullet = Math.atan2(this.y - b.y, this.x - b.x);
       const bAngle = Math.atan2(b.vy, b.vx);
       let diff = toBullet - bAngle;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
       if (Math.abs(diff) < 0.5) {
-        // Dodge perpendicular to bullet direction
         const perpAngle = bAngle + (Math.PI / 2) * this.flankDir;
-        const urgency = (120 - bDist) / 120;
-        dodgeX += Math.cos(perpAngle) * this.speed * 1.5 * urgency;
-        dodgeY += Math.sin(perpAngle) * this.speed * 1.5 * urgency;
+        const urgency = (140 - bDist) / 140;
+        dodgeX += Math.cos(perpAngle) * this.speed * 2.0 * urgency;
+        dodgeY += Math.sin(perpAngle) * this.speed * 2.0 * urgency;
         break;
       }
     }
 
+    const lowHP = this.hp / this.maxHp < 0.35;
+
     if (dodgeX !== 0 || dodgeY !== 0) {
       this.move(dodgeX, dodgeY);
+    } else if (this.jukeTimer > 0) {
+      // Already juking above
+    } else if (lowHP) {
+      // Retreat when low HP — run away from player, strafe erratically
+      const retreatAngle = this.angle + Math.PI + this.flankDir * 0.6;
+      this.move(
+        Math.cos(retreatAngle) * this.speed * 1.2,
+        Math.sin(retreatAngle) * this.speed * 1.2,
+      );
     } else if (d > 280) {
-      const ma = this.angle + this.flankDir * 0.25;
-      this.move(Math.cos(ma) * this.speed, Math.sin(ma) * this.speed);
+      // Advance — try to approach from the side, not head-on
+      const approachAngle = this.angle + this.flankDir * 0.4;
+      this.move(
+        Math.cos(approachAngle) * this.speed,
+        Math.sin(approachAngle) * this.speed,
+      );
     } else if (d > 120) {
+      // Strafe — orbit the player
       const sa = this.angle + (Math.PI / 2) * this.flankDir;
       this.move(
-        Math.cos(sa) * this.speed * 0.8,
-        Math.sin(sa) * this.speed * 0.8,
+        Math.cos(sa) * this.speed * 0.9,
+        Math.sin(sa) * this.speed * 0.9,
       );
     } else {
+      // Too close — back off while strafing
+      const retreatStrafe = this.angle + Math.PI + this.flankDir * 0.8;
       this.move(
-        -Math.cos(this.angle) * this.speed * 0.6,
-        -Math.sin(this.angle) * this.speed * 0.6,
+        Math.cos(retreatStrafe) * this.speed * 0.7,
+        Math.sin(retreatStrafe) * this.speed * 0.7,
       );
     }
 
-    // Spread out from nearby allies
+    // Spread out from nearby allies — coordinated positioning
     for (const other of S.enemies) {
       if (other === this) continue;
       const aDist = Math.hypot(other.x - this.x, other.y - this.y);
-      if (aDist < 60 && aDist > 0) {
+      if (aDist < 70 && aDist > 0) {
         const awayAngle = Math.atan2(this.y - other.y, this.x - other.x);
-        this.move(Math.cos(awayAngle) * 0.5, Math.sin(awayAngle) * 0.5);
+        this.move(Math.cos(awayAngle) * 0.6, Math.sin(awayAngle) * 0.6);
       }
     }
 
-    if (Math.random() < 0.016) this.shoot();
+    // Try to use walls as cover — move toward nearby walls when not attacking
+    if (!lowHP && d > 150 && d < 350) {
+      let bestWall = null,
+        bestDist = 80;
+      for (const w of S.walls) {
+        const wx = w.x + w.w / 2,
+          wy = w.y + w.h / 2;
+        const wDist = Math.hypot(wx - this.x, wy - this.y);
+        // Wall should be between us and the player
+        const wallToPlayer = Math.hypot(wx - tgt.x, wy - tgt.y);
+        if (wDist < bestDist && wallToPlayer < d) {
+          bestDist = wDist;
+          bestWall = { x: wx, y: wy };
+        }
+      }
+      if (bestWall) {
+        const toWall = Math.atan2(bestWall.y - this.y, bestWall.x - this.x);
+        this.move(
+          Math.cos(toWall) * this.speed * 0.3,
+          Math.sin(toWall) * this.speed * 0.3,
+        );
+      }
+    }
+
+    // Shoot — more aggressive when closer, less when far
+    const shootChance = d < 200 ? 0.025 : d < 350 ? 0.018 : 0.01;
+    if (Math.random() < shootChance) this.shoot();
   }
 
   draw() {
@@ -277,6 +350,8 @@ export class Drone {
     this.speed = 4.2;
     this.angle = 0;
     this.dead = false;
+    this.zigPhase = Math.random() * Math.PI * 2;
+    this.zigSpeed = 0.08 + Math.random() * 0.06;
     this.getRect = () => ({
       x: this.x - this.radius,
       y: this.y - this.radius,
@@ -288,8 +363,15 @@ export class Drone {
   update() {
     const tgt = nearestLivingPlayer(this.x, this.y);
     this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
-    this.x += Math.cos(this.angle) * this.speed;
-    this.y += Math.sin(this.angle) * this.speed;
+    const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
+
+    this.zigPhase += this.zigSpeed;
+    // Zigzag when far, straighten out for final approach
+    const zigAmount = d > 80 ? Math.sin(this.zigPhase) * 1.2 : 0;
+    const moveAngle = this.angle + zigAmount;
+
+    this.x += Math.cos(moveAngle) * this.speed;
+    this.y += Math.sin(moveAngle) * this.speed;
   }
 
   draw() {
@@ -382,7 +464,19 @@ export class SniperTank {
     const tgt = nearestLivingPlayer(this.x, this.y);
     if (!tgt) return;
     const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
-    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+
+    // Predictive aiming — snipers lead targets aggressively
+    const bulletSpd = 8;
+    const travelTime = d / bulletSpd;
+    let predX = tgt.x,
+      predY = tgt.y;
+    if (tgt._prevX !== undefined) {
+      const tvx = tgt.x - tgt._prevX;
+      const tvy = tgt.y - tgt._prevY;
+      predX += tvx * travelTime * 0.7;
+      predY += tvy * travelTime * 0.7;
+    }
+    this.angle = Math.atan2(predY - this.y, predX - this.x);
 
     this.flankTimer--;
     if (this.flankTimer <= 0) {
@@ -390,54 +484,92 @@ export class SniperTank {
       this.flankDir = -this.flankDir;
     }
 
-    // Snipers want to stay far — preferred 350-450 px
-    if (d < 250) {
-      // Retreat fast
+    // Snipers try to position behind walls for peek-shooting
+    let nearWall = null,
+      nearWallDist = 100;
+    for (const w of S.walls) {
+      const wx = w.x + w.w / 2,
+        wy = w.y + w.h / 2;
+      const wDist = Math.hypot(wx - this.x, wy - this.y);
+      // Wall should be between sniper and player
+      const wallToPlayer = Math.hypot(wx - tgt.x, wy - tgt.y);
+      if (wDist < nearWallDist && wallToPlayer < d && wallToPlayer > 60) {
+        nearWallDist = wDist;
+        nearWall = { x: wx, y: wy, w: w.w, h: w.h };
+      }
+    }
+
+    if (nearWall && d > 200) {
+      // Position near the wall edge for peek shots
+      const wallAngle = Math.atan2(nearWall.y - this.y, nearWall.x - this.x);
+      const edgeOffset = (this.flankDir * Math.PI) / 2.5;
+      const peekX =
+        nearWall.x +
+        Math.cos(wallAngle + edgeOffset + Math.PI) * (nearWall.w / 2 + 25);
+      const peekY =
+        nearWall.y +
+        Math.sin(wallAngle + edgeOffset + Math.PI) * (nearWall.h / 2 + 25);
+      const toPeek = Math.atan2(peekY - this.y, peekX - this.x);
+      const peekDist = Math.hypot(peekX - this.x, peekY - this.y);
+      if (peekDist > 10) {
+        this.move(
+          Math.cos(toPeek) * this.speed * 0.8,
+          Math.sin(toPeek) * this.speed * 0.8,
+        );
+      }
+    } else if (d < 200) {
+      // Panic retreat — fast escape at angle
+      const escAngle = this.angle + Math.PI + this.flankDir * 0.5;
       this.move(
-        -Math.cos(this.angle) * this.speed * 1.4,
-        -Math.sin(this.angle) * this.speed * 1.4,
+        Math.cos(escAngle) * this.speed * 1.8,
+        Math.sin(escAngle) * this.speed * 1.8,
       );
-    } else if (d < 350) {
-      // Strafe sideways
-      const sa = this.angle + (Math.PI / 2) * this.flankDir;
-      this.move(Math.cos(sa) * this.speed, Math.sin(sa) * this.speed);
-    } else if (d > 500) {
-      // Approach slowly
-      const ma = this.angle + this.flankDir * 0.15;
+    } else if (d < 300) {
+      // Strafe sideways while retreating slightly
+      const sa = this.angle + (Math.PI / 2) * this.flankDir + Math.PI * 0.15;
       this.move(
-        Math.cos(ma) * this.speed * 0.7,
-        Math.sin(ma) * this.speed * 0.7,
+        Math.cos(sa) * this.speed * 1.1,
+        Math.sin(sa) * this.speed * 1.1,
+      );
+    } else if (d > 520) {
+      // Close in slowly at an angle
+      const ma = this.angle + this.flankDir * 0.3;
+      this.move(
+        Math.cos(ma) * this.speed * 0.6,
+        Math.sin(ma) * this.speed * 0.6,
       );
     } else {
-      // In sweet zone — barely move, just strafe lightly
+      // In sweet zone — slow strafe
       const sa = this.angle + (Math.PI / 2) * this.flankDir;
       this.move(
-        Math.cos(sa) * this.speed * 0.4,
-        Math.sin(sa) * this.speed * 0.4,
+        Math.cos(sa) * this.speed * 0.35,
+        Math.sin(sa) * this.speed * 0.35,
       );
     }
 
-    // Dodge incoming bullets
+    // Dodge incoming bullets — snipers are nimble
     for (const b of S.bullets) {
       if (!b.isPlayer) continue;
       const bDist = Math.hypot(b.x - this.x, b.y - this.y);
-      if (bDist > 100) continue;
+      if (bDist > 130) continue;
       const toBullet = Math.atan2(this.y - b.y, this.x - b.x);
       const bAngle = Math.atan2(b.vy, b.vx);
       let diff = toBullet - bAngle;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      if (Math.abs(diff) < 0.4) {
+      if (Math.abs(diff) < 0.45) {
         const perpAngle = bAngle + (Math.PI / 2) * this.flankDir;
+        const urgency = (130 - bDist) / 130;
         this.move(
-          Math.cos(perpAngle) * this.speed * 2,
-          Math.sin(perpAngle) * this.speed * 2,
+          Math.cos(perpAngle) * this.speed * 2.5 * urgency,
+          Math.sin(perpAngle) * this.speed * 2.5 * urgency,
         );
         break;
       }
     }
 
-    if (this.cooldown <= 0 && d < 550) this.shoot();
+    // Only shoot when in good range, and with slight delay for "aiming"
+    if (this.cooldown <= 0 && d > 180 && d < 550) this.shoot();
   }
 
   draw() {
@@ -577,6 +709,8 @@ export class HeavyTank {
     this.cooldown = 0;
     this.flankTimer = 50 + Math.random() * 70;
     this.flankDir = Math.random() < 0.5 ? 1 : -1;
+    this.chargeTimer = 0;
+    this.chargeAngle = 0;
     this.getRect = () => ({
       x: this.x - this.size / 2,
       y: this.y - this.size / 2,
@@ -614,7 +748,19 @@ export class HeavyTank {
     const tgt = nearestLivingPlayer(this.x, this.y);
     if (!tgt) return;
     const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
-    this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+
+    // Predictive aim — moderate lead
+    const bulletSpd = 8;
+    const travelTime = d / bulletSpd;
+    let predX = tgt.x,
+      predY = tgt.y;
+    if (tgt._prevX !== undefined) {
+      const tvx = tgt.x - tgt._prevX;
+      const tvy = tgt.y - tgt._prevY;
+      predX += tvx * travelTime * 0.4;
+      predY += tvy * travelTime * 0.4;
+    }
+    this.angle = Math.atan2(predY - this.y, predX - this.x);
 
     this.flankTimer--;
     if (this.flankTimer <= 0) {
@@ -622,21 +768,58 @@ export class HeavyTank {
       this.flankDir = -this.flankDir;
     }
 
-    // Heavy tanks push forward aggressively
-    if (d > 200) {
-      const ma = this.angle + this.flankDir * 0.15;
-      this.move(Math.cos(ma) * this.speed, Math.sin(ma) * this.speed);
-    } else if (d > 100) {
-      // Strafe
-      const sa = this.angle + (Math.PI / 2) * this.flankDir;
+    // Charge mechanic — when close enough, burst forward
+    if (this.chargeTimer > 0) {
+      this.chargeTimer--;
       this.move(
-        Math.cos(sa) * this.speed * 0.7,
-        Math.sin(sa) * this.speed * 0.7,
+        Math.cos(this.chargeAngle) * this.speed * 3.0,
+        Math.sin(this.chargeAngle) * this.speed * 3.0,
+      );
+    } else if (d < 250 && d > 80 && Math.random() < 0.006) {
+      // Initiate charge
+      this.chargeTimer = 15 + Math.floor(Math.random() * 10);
+      this.chargeAngle = this.angle;
+    } else if (d > 200) {
+      // Advance aggressively — heavy tanks take the direct path
+      const ma = this.angle + this.flankDir * 0.12;
+      this.move(
+        Math.cos(ma) * this.speed * 1.1,
+        Math.sin(ma) * this.speed * 1.1,
+      );
+    } else if (d > 80) {
+      // Close range strafe — keep pressure
+      const sa = this.angle + (Math.PI / 2) * this.flankDir;
+      // Mix strafe with push forward
+      const pushFwd = 0.3;
+      this.move(
+        (Math.cos(sa) * (1 - pushFwd) + Math.cos(this.angle) * pushFwd) *
+          this.speed,
+        (Math.sin(sa) * (1 - pushFwd) + Math.sin(this.angle) * pushFwd) *
+          this.speed,
       );
     }
-    // Heavy tanks don't retreat — they hold ground
+    // Heavy tanks never retreat
 
-    if (Math.random() < 0.013) this.shoot();
+    // Body-block — position between player and weaker allies
+    for (const other of S.enemies) {
+      if (other === this || other instanceof HeavyTank) continue;
+      const allyDist = Math.hypot(other.x - this.x, other.y - this.y);
+      if (allyDist < 100 && other.hp / other.maxHp < 0.5) {
+        // Move toward a point between ally and player
+        const midX = (other.x + tgt.x) / 2;
+        const midY = (other.y + tgt.y) / 2;
+        const toMid = Math.atan2(midY - this.y, midX - this.x);
+        this.move(
+          Math.cos(toMid) * this.speed * 0.4,
+          Math.sin(toMid) * this.speed * 0.4,
+        );
+        break;
+      }
+    }
+
+    // Shoot more frequently — heavy tanks are aggressive
+    const shootChance = d < 150 ? 0.022 : 0.015;
+    if (Math.random() < shootChance) this.shoot();
   }
 
   draw() {
@@ -779,6 +962,8 @@ export class CloakDrone {
     this.angle = 0;
     this.dead = false;
     this.cloakPhase = Math.random() * Math.PI * 2;
+    this.orbitDir = Math.random() < 0.5 ? 1 : -1;
+    this.lunging = false;
     this.getRect = () => ({
       x: this.x - this.radius,
       y: this.y - this.radius,
@@ -790,9 +975,38 @@ export class CloakDrone {
   update() {
     this.cloakPhase += 0.04;
     const tgt = nearestLivingPlayer(this.x, this.y);
+    const d = Math.hypot(tgt.x - this.x, tgt.y - this.y);
     this.angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
-    this.x += Math.cos(this.angle) * this.speed;
-    this.y += Math.sin(this.angle) * this.speed;
+    const alpha = this.getAlpha();
+
+    if (this.lunging) {
+      // Committed lunge — fast direct charge
+      this.x += Math.cos(this.angle) * this.speed * 1.6;
+      this.y += Math.sin(this.angle) * this.speed * 1.6;
+      if (d < 20) this.lunging = false;
+    } else if (d > 200) {
+      // Approach at angle — not straight
+      const approachAngle = this.angle + this.orbitDir * 0.3;
+      this.x += Math.cos(approachAngle) * this.speed;
+      this.y += Math.sin(approachAngle) * this.speed;
+    } else if (d > 60 && alpha < 0.3) {
+      // Cloaked and close — lunge now while invisible
+      this.lunging = true;
+      this.x += Math.cos(this.angle) * this.speed * 1.6;
+      this.y += Math.sin(this.angle) * this.speed * 1.6;
+    } else if (d > 60) {
+      // Visible — circle-strafe and wait for cloak
+      const orbitAngle = this.angle + (Math.PI / 2) * this.orbitDir;
+      // Slowly close distance while orbiting
+      this.x +=
+        (Math.cos(orbitAngle) * 0.7 + Math.cos(this.angle) * 0.3) * this.speed;
+      this.y +=
+        (Math.sin(orbitAngle) * 0.7 + Math.sin(this.angle) * 0.3) * this.speed;
+    } else {
+      // Very close — just charge
+      this.x += Math.cos(this.angle) * this.speed;
+      this.y += Math.sin(this.angle) * this.speed;
+    }
   }
 
   getAlpha() {
