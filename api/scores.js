@@ -1,7 +1,17 @@
-import { kv } from "@vercel/kv";
+import { createClient } from "redis";
 
 const SCORES_KEY = "tis2_leaderboard";
 const MAX_SCORES = 10;
+
+let redis;
+async function getRedis() {
+  if (!redis) {
+    redis = createClient({ url: process.env.REDIS_URL });
+    redis.on("error", (err) => console.error("Redis error:", err));
+    await redis.connect();
+  }
+  return redis;
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -13,8 +23,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    const client = await getRedis();
+
     if (req.method === "GET") {
-      const scores = (await kv.get(SCORES_KEY)) || [];
+      const raw = await client.get(SCORES_KEY);
+      const scores = raw ? JSON.parse(raw) : [];
       return res.status(200).json(scores);
     }
 
@@ -34,7 +47,8 @@ export default async function handler(req, res) {
       }
 
       const sanitizedName = name.trim().slice(0, 30);
-      const scores = (await kv.get(SCORES_KEY)) || [];
+      const raw = await client.get(SCORES_KEY);
+      const scores = raw ? JSON.parse(raw) : [];
 
       scores.push({
         name: sanitizedName,
@@ -45,7 +59,7 @@ export default async function handler(req, res) {
       scores.sort((a, b) => b.score - a.score);
       const trimmed = scores.slice(0, MAX_SCORES);
 
-      await kv.set(SCORES_KEY, trimmed);
+      await client.set(SCORES_KEY, JSON.stringify(trimmed));
       return res.status(200).json(trimmed);
     }
 
