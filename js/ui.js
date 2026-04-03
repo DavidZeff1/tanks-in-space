@@ -116,7 +116,7 @@ export function closeBindings() {
 // LEADERBOARD
 // ═══════════════════════════════════════════════════
 
-export function getLB() {
+function getLocalLB() {
   try {
     return JSON.parse(localStorage.getItem("tis2_scores") || "[]");
   } catch (_) {
@@ -124,19 +124,54 @@ export function getLB() {
   }
 }
 
-export function saveLB(name, sc) {
-  let lb = getLB();
+function saveLocalLB(lb) {
+  localStorage.setItem("tis2_scores", JSON.stringify(lb.slice(0, 10)));
+}
+
+async function fetchRemoteLB() {
+  const res = await fetch("/api/scores");
+  if (!res.ok) throw new Error("API error");
+  return await res.json();
+}
+
+export async function getLB() {
+  try {
+    const scores = await fetchRemoteLB();
+    saveLocalLB(scores);
+    return scores;
+  } catch (_) {
+    return getLocalLB();
+  }
+}
+
+export async function saveLB(name, sc) {
+  // Save locally immediately
+  let lb = getLocalLB();
   lb.push({
     name,
     score: sc,
     date: new Date().toLocaleDateString("he-IL"),
   });
   lb.sort((a, b) => b.score - a.score);
-  localStorage.setItem("tis2_scores", JSON.stringify(lb.slice(0, 10)));
+  saveLocalLB(lb);
+
+  // Save remotely
+  try {
+    const res = await fetch("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, score: sc }),
+    });
+    if (res.ok) {
+      const scores = await res.json();
+      saveLocalLB(scores);
+    }
+  } catch (_) {
+    // Remote save failed — local copy is still saved
+  }
 }
 
-export function renderLB() {
-  const lb = getLB();
+function renderLBData(lb) {
   const ul = document.getElementById("lb-list");
   ul.innerHTML = lb.length
     ? lb
@@ -146,6 +181,15 @@ export function renderLB() {
         )
         .join("")
     : '<li style="justify-content:center;color:#7aaac8;">אין עדיין שיאים</li>';
+}
+
+export async function renderLB() {
+  renderLBData(getLocalLB());
+  try {
+    const scores = await fetchRemoteLB();
+    saveLocalLB(scores);
+    renderLBData(scores);
+  } catch (_) {}
 }
 
 export function openLeaderboard(returnScreen) {
