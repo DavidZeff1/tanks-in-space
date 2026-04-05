@@ -49,6 +49,11 @@ const S = {
   shieldTimer: 0,
   speedBoostTimer: 0,
 
+  // P1 Weapon heat
+  weaponHeat: 0,
+  weaponOverheated: false,
+  weaponOverheatTimer: 0,
+
   // Score
   score: 0,
   combo: 0,
@@ -70,6 +75,11 @@ const S = {
   p2ShieldActive: false,
   p2ShieldTimer: 0,
   p2SpeedBoostTimer: 0,
+
+  // P2 Weapon heat
+  p2WeaponHeat: 0,
+  p2WeaponOverheated: false,
+  p2WeaponOverheatTimer: 0,
 
   // Music
   bgMusic: null,

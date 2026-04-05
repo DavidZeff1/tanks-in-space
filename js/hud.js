@@ -3,7 +3,12 @@
 // ═══════════════════════════════════════════════════
 
 import S from "./state.js";
-import { MAX_CD_SHIELD, SHIELD_DURATION } from "./config.js";
+import {
+  MAX_CD_SHIELD,
+  SHIELD_DURATION,
+  HEAT_MAX,
+  HEAT_OVERHEAT_LOCKOUT,
+} from "./config.js";
 import { addShake } from "./effects.js";
 import { createExplosion } from "./particles.js";
 import { saveLB } from "./ui.js";
@@ -81,5 +86,37 @@ export function applyPowerUpP2(type) {
     S.p2ShieldActive = true;
     S.p2ShieldTimer = SHIELD_DURATION;
     S.p2CdShield = MAX_CD_SHIELD;
+  }
+}
+
+export function updateHeatBar() {
+  const bar = document.getElementById("heat-bar");
+  if (!bar) return;
+  if (S.weaponOverheated) {
+    const pct = 100 - (S.weaponOverheatTimer / HEAT_OVERHEAT_LOCKOUT) * 100;
+    bar.style.width = pct + "%";
+    bar.style.background = "linear-gradient(90deg,#c0392b,#e74c3c)";
+  } else {
+    const pct = (S.weaponHeat / HEAT_MAX) * 100;
+    bar.style.width = pct + "%";
+    if (pct > 75)
+      bar.style.background = "linear-gradient(90deg,#e67e22,#f39c12)";
+    else bar.style.background = "linear-gradient(90deg,#3498db,#2980b9)";
+  }
+}
+
+export function updateHeatBarP2() {
+  const bar = document.getElementById("heat-bar2");
+  if (!bar) return;
+  if (S.p2WeaponOverheated) {
+    const pct = 100 - (S.p2WeaponOverheatTimer / HEAT_OVERHEAT_LOCKOUT) * 100;
+    bar.style.width = pct + "%";
+    bar.style.background = "linear-gradient(90deg,#c0392b,#e74c3c)";
+  } else {
+    const pct = (S.p2WeaponHeat / HEAT_MAX) * 100;
+    bar.style.width = pct + "%";
+    if (pct > 75)
+      bar.style.background = "linear-gradient(90deg,#e67e22,#f39c12)";
+    else bar.style.background = "linear-gradient(90deg,#3498db,#2980b9)";
   }
 }

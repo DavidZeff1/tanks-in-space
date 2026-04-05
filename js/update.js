@@ -10,6 +10,9 @@ import {
   MAX_CD_AOE,
   MAX_CD_SHIELD,
   LEVEL_DATA,
+  HEAT_MAX,
+  HEAT_REGEN,
+  HEAT_OVERHEAT_LOCKOUT,
 } from "./config.js";
 import { dist, aabb, findNearestTarget } from "./utils.js";
 import {
@@ -20,7 +23,14 @@ import {
   registerKill,
 } from "./effects.js";
 import { createParticles, createExplosion } from "./particles.js";
-import { updateHP, updateHP2, applyPowerUp, applyPowerUpP2 } from "./hud.js";
+import {
+  updateHP,
+  updateHP2,
+  applyPowerUp,
+  applyPowerUpP2,
+  updateHeatBar,
+  updateHeatBarP2,
+} from "./hud.js";
 import { saveLB } from "./ui.js";
 import { PowerUp, SniperTank, HeavyTank, CloakDrone } from "./entities.js";
 
@@ -58,6 +68,18 @@ export function update() {
     S.speedBoostTimer--;
     if (S.speedBoostTimer === 0) S.player.speed = 3.5;
   }
+
+  // P1 Weapon heat
+  if (S.weaponOverheated) {
+    S.weaponOverheatTimer++;
+    if (S.weaponOverheatTimer >= HEAT_OVERHEAT_LOCKOUT) {
+      S.weaponOverheated = false;
+      S.weaponHeat = 0;
+    }
+  } else if (S.weaponHeat > 0 && !S.mouse.isDown) {
+    S.weaponHeat = Math.max(0, S.weaponHeat - HEAT_REGEN);
+  }
+  updateHeatBar();
 
   // Player 1
   if (S.player.cooldown > 0) S.player.cooldown--;
@@ -101,6 +123,17 @@ export function update() {
       S.p2SpeedBoostTimer--;
       if (S.p2SpeedBoostTimer === 0) S.player2.speed = 3.5;
     }
+    // P2 Weapon heat
+    if (S.p2WeaponOverheated) {
+      S.p2WeaponOverheatTimer++;
+      if (S.p2WeaponOverheatTimer >= HEAT_OVERHEAT_LOCKOUT) {
+        S.p2WeaponOverheated = false;
+        S.p2WeaponHeat = 0;
+      }
+    } else if (S.p2WeaponHeat > 0 && !S.keys["shift"]) {
+      S.p2WeaponHeat = Math.max(0, S.p2WeaponHeat - HEAT_REGEN);
+    }
+    updateHeatBarP2();
     const p2Target = findNearestTarget(S.player2.x, S.player2.y);
     let dx2 = 0,
       dy2 = 0;

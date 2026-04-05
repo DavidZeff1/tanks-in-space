@@ -35,10 +35,16 @@ export function startGame() {
   document.getElementById("score-num").textContent = "0";
   document.getElementById("combo-display").textContent = "";
   S.player = new Tank(400, 500, "#00d4ff", true, name);
+  S.weaponHeat = 0;
+  S.weaponOverheated = false;
+  S.weaponOverheatTimer = 0;
   if (S.twoPlayerMode) {
     let name2 = document.getElementById("name-input2").value.trim();
     if (!name2) name2 = "שחקן 2";
     S.player2 = new Tank(350, 500, "#4a9fff", true, name2, true);
+    S.p2WeaponHeat = 0;
+    S.p2WeaponOverheated = false;
+    S.p2WeaponOverheatTimer = 0;
     document.getElementById("p2-hud-box").style.display = "block";
     document.getElementById("p2-abilities").style.display = "flex";
   } else {

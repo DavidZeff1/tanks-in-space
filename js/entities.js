@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════
 
 import S from "./state.js";
-import { W, H } from "./config.js";
+import { W, H, HEAT_MAX, HEAT_PER_SHOT } from "./config.js";
 import { aabb, nearestLivingPlayer, dist } from "./utils.js";
 import {
   createParticles,
@@ -53,12 +53,29 @@ export class Tank {
 
   shoot() {
     if (this.cooldown <= 0) {
+      // Player heat check
+      if (this.isPlayer) {
+        const hs = this.isP2 ? "p2Weapon" : "weapon";
+        if (S[hs + "Overheated"]) return;
+        if (S[hs + "Heat"] >= HEAT_MAX) return;
+      }
       const tx = this.x + Math.cos(this.angle) * this.size;
       const ty = this.y + Math.sin(this.angle) * this.size;
       const b = new Bullet(tx, ty, this.angle, this.isPlayer, false);
       b.isP2 = this.isP2;
       S.bullets.push(b);
       this.cooldown = this.isPlayer ? 12 : 75;
+      // Add heat for player shots
+      if (this.isPlayer) {
+        const hk = this.isP2 ? "p2WeaponHeat" : "weaponHeat";
+        const ok = this.isP2 ? "p2WeaponOverheated" : "weaponOverheated";
+        const tk = this.isP2 ? "p2WeaponOverheatTimer" : "weaponOverheatTimer";
+        S[hk] = Math.min(HEAT_MAX, S[hk] + HEAT_PER_SHOT);
+        if (S[hk] >= HEAT_MAX) {
+          S[ok] = true;
+          S[tk] = 0;
+        }
+      }
     }
   }
 

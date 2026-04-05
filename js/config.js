@@ -11,6 +11,12 @@ export const MAX_CD_SHIELD = 360;
 export const SHIELD_DURATION = 200;
 export const COMBO_WINDOW = 150;
 
+// Weapon heat system
+export const HEAT_MAX = 100;
+export const HEAT_PER_SHOT = 12;
+export const HEAT_REGEN = 0.6;
+export const HEAT_OVERHEAT_LOCKOUT = 120; // frames (~2 sec at 60fps)
+
 export const DEFAULT_BINDINGS = {
   up: "w",
   down: "s",
