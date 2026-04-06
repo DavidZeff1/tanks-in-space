@@ -2,7 +2,10 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>טנקים בחלל העמוק — מלחמת הכט"במים הראשונה</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
@@ -113,7 +116,7 @@
           >
             מלחמת הכט"במים הראשונה
           </div>
-          <p>
+          <p id="desktop-controls">
             <b>P1 תנועה:</b> <span id="lbl-up">W</span>/<span id="lbl-down"
               >S</span
             >/<span id="lbl-left">A</span>/<span id="lbl-right">D</span>
@@ -127,6 +130,10 @@
               <b>טיל</b> . &nbsp;·&nbsp; <b>הדף</b> , &nbsp;·&nbsp;
               <b>שילד</b> /
             </span>
+          </p>
+          <p id="mobile-controls-hint" style="display: none">
+            🕹 ג'ויסטיק לתנועה &nbsp;|&nbsp; ירי אוטומטי<br />
+            כפתורי כוחות בצד ימין
           </p>
           <input
             type="text"
@@ -395,6 +402,21 @@
         </div>
       </div>
       <!-- /ui-layer -->
+
+      <!-- Mobile touch controls -->
+      <div id="mobile-controls" style="display: none">
+        <div id="joystick-zone">
+          <div id="joystick-base">
+            <div id="joystick-thumb"></div>
+          </div>
+        </div>
+        <div id="mobile-abilities">
+          <button class="mobile-ability" id="mob-ab1">🚀</button>
+          <button class="mobile-ability" id="mob-ab2">🔥</button>
+          <button class="mobile-ability" id="mob-ab3">🛡</button>
+        </div>
+        <button id="mobile-pause-btn">⏸</button>
+      </div>
     </div>
     <!-- /game-container -->
 

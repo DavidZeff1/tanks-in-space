@@ -76,32 +76,70 @@ export function update() {
       S.weaponOverheated = false;
       S.weaponHeat = 0;
     }
-  } else if (S.weaponHeat > 0 && !S.mouse.isDown) {
+  } else if (
+    S.weaponHeat > 0 &&
+    (!S.mouse.isDown ||
+      (S.isMobile && !findNearestTarget(S.player.x, S.player.y)))
+  ) {
     S.weaponHeat = Math.max(0, S.weaponHeat - HEAT_REGEN);
   }
   updateHeatBar();
 
   // Player 1
   if (S.player.cooldown > 0) S.player.cooldown--;
-  S.player.angle = Math.atan2(S.mouse.y - S.player.y, S.mouse.x - S.player.x);
-  let dx = 0,
-    dy = 0;
-  if (S.keys[S.bindings.up] || (!S.twoPlayerMode && S.keys["arrowup"]))
-    dy -= S.player.speed;
-  if (S.keys[S.bindings.down] || (!S.twoPlayerMode && S.keys["arrowdown"]))
-    dy += S.player.speed;
-  if (S.keys[S.bindings.left] || (!S.twoPlayerMode && S.keys["arrowleft"]))
-    dx -= S.player.speed;
-  if (S.keys[S.bindings.right] || (!S.twoPlayerMode && S.keys["arrowright"]))
-    dx += S.player.speed;
-  if (dx !== 0 && dy !== 0) {
-    dx *= 0.707;
-    dy *= 0.707;
+
+  // Mobile touch controls
+  if (S.isMobile) {
+    // Joystick movement
+    let dx = S.touch.dx * S.player.speed;
+    let dy = S.touch.dy * S.player.speed;
+    if (S.player.hp > 0) {
+      S.player.move(dx, dy);
+    }
+
+    // Auto-aim: face nearest enemy
+    const autoTarget = findNearestTarget(S.player.x, S.player.y);
+    if (autoTarget) {
+      S.player.angle = Math.atan2(
+        autoTarget.y - S.player.y,
+        autoTarget.x - S.player.x,
+      );
+      // Auto-shoot
+      if (S.autoShoot && S.player.hp > 0) S.player.shoot();
+    } else if (S.touch.active && (S.touch.dx !== 0 || S.touch.dy !== 0)) {
+      // Face movement direction if no enemies
+      S.player.angle = Math.atan2(S.touch.dy, S.touch.dx);
+    }
+
+    // Update mobile ability button cooldown visuals
+    const ab1 = document.getElementById("mob-ab1");
+    const ab2 = document.getElementById("mob-ab2");
+    const ab3 = document.getElementById("mob-ab3");
+    if (ab1) ab1.classList.toggle("on-cooldown", S.cdMissile > 0);
+    if (ab2) ab2.classList.toggle("on-cooldown", S.cdAoe > 0);
+    if (ab3) ab3.classList.toggle("on-cooldown", S.cdShield > 0);
+  } else {
+    // Desktop: keyboard + mouse
+    S.player.angle = Math.atan2(S.mouse.y - S.player.y, S.mouse.x - S.player.x);
+    let dx = 0,
+      dy = 0;
+    if (S.keys[S.bindings.up] || (!S.twoPlayerMode && S.keys["arrowup"]))
+      dy -= S.player.speed;
+    if (S.keys[S.bindings.down] || (!S.twoPlayerMode && S.keys["arrowdown"]))
+      dy += S.player.speed;
+    if (S.keys[S.bindings.left] || (!S.twoPlayerMode && S.keys["arrowleft"]))
+      dx -= S.player.speed;
+    if (S.keys[S.bindings.right] || (!S.twoPlayerMode && S.keys["arrowright"]))
+      dx += S.player.speed;
+    if (dx !== 0 && dy !== 0) {
+      dx *= 0.707;
+      dy *= 0.707;
+    }
+    if (S.player.hp > 0) {
+      S.player.move(dx, dy);
+    }
+    if (S.mouse.isDown && S.player.hp > 0) S.player.shoot();
   }
-  if (S.player.hp > 0) {
-    S.player.move(dx, dy);
-  }
-  if (S.mouse.isDown && S.player.hp > 0) S.player.shoot();
 
   // Player 2
   if (S.twoPlayerMode && S.player2 && S.player2.hp > 0) {

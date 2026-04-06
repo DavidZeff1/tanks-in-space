@@ -544,3 +544,188 @@ button.danger:hover {
   pointer-events: none;
   z-index: 5;
 }
+
+/* ═══════════════════════════════════════════════════
+   MOBILE TOUCH CONTROLS
+   ═══════════════════════════════════════════════════ */
+
+#mobile-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+/* Joystick zone — left half of screen */
+#joystick-zone {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  height: 60%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#joystick-base {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, 0.12);
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+#joystick-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 212, 255, 0.6),
+    rgba(0, 212, 255, 0.25)
+  );
+  border: 2px solid rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.35);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Mobile ability buttons — right side */
+#mobile-abilities {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.mobile-ability {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(8, 10, 16, 0.85);
+  border: 2px solid rgba(0, 212, 255, 0.35);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 200, 180, 0.15);
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.mobile-ability:active {
+  background: rgba(0, 100, 180, 0.4);
+  border-color: #00d4ff;
+}
+
+.mobile-ability.on-cooldown {
+  opacity: 0.35;
+  border-color: rgba(100, 100, 100, 0.3);
+}
+
+#mobile-pause-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(8, 10, 16, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  font-size: 18px;
+  color: #00d4ff;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 860px) and (pointer: coarse) {
+  body {
+    height: 100dvh;
+  }
+  #game-container {
+    width: 100vw;
+    height: 100dvh;
+  }
+  #gameCanvas,
+  #vigCanvas {
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #hud {
+    top: 4px;
+    left: 4px;
+    right: 4px;
+  }
+  .hud-box {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .hp-bar-container,
+  .p2-hp-bar-container {
+    width: 100px;
+  }
+  .heat-bar-container {
+    width: 100px;
+  }
+  #abilities,
+  #p2-abilities {
+    display: none !important;
+  }
+  .overlay {
+    max-width: 95%;
+    padding: 18px 20px;
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  h1 {
+    font-size: 22px;
+  }
+  p {
+    font-size: 12px;
+  }
+  /* Hide desktop-only controls on mobile */
+  #two-player-check,
+  #two-player-check + * {
+    display: none !important;
+  }
+  .settings-row:has(#two-player-check) {
+    display: none !important;
+  }
+  #p2-name-row {
+    display: none !important;
+  }
+  #p2-controls-hint {
+    display: none !important;
+  }
+  #desktop-controls {
+    display: none !important;
+  }
+}

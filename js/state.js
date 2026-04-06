@@ -98,6 +98,19 @@ const S = {
   // Visual
   stars: [],
   groundRocks: [],
+
+  // Mobile / Touch
+  isMobile: false,
+  touch: {
+    active: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    dx: 0,
+    dy: 0,
+  },
+  autoShoot: false,
 };
 
 export default S;

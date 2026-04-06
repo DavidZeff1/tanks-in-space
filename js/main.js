@@ -45,6 +45,22 @@ initGroundRocks();
 initSettings();
 initInput();
 
+// Mobile canvas scaling
+function resizeCanvas() {
+  if (!S.isMobile) return;
+  const container = document.getElementById("game-container");
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  container.style.width = vw + "px";
+  container.style.height = vh + "px";
+  S.canvas.style.width = vw + "px";
+  S.canvas.style.height = vh + "px";
+  S.vigCvs.style.width = vw + "px";
+  S.vigCvs.style.height = vh + "px";
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
 // Game loop
 function loop() {
   update();
